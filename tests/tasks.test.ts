@@ -240,6 +240,42 @@ test('loading stored tasks permanently drops records left by the old soft-delete
   }
 })
 
+test('first launch starts with an empty schedule instead of preset plans', () => {
+  const originalDescriptor = Object.getOwnPropertyDescriptor(globalThis, 'localStorage')
+  Object.defineProperty(globalThis, 'localStorage', {
+    configurable: true,
+    value: { getItem: () => null },
+  })
+
+  try {
+    assert.deepEqual(readTasks(), [])
+  } finally {
+    if (originalDescriptor) Object.defineProperty(globalThis, 'localStorage', originalDescriptor)
+    else Reflect.deleteProperty(globalThis, 'localStorage')
+  }
+})
+
+test('loading stored tasks removes legacy preset plans but keeps user plans', () => {
+  const originalDescriptor = Object.getOwnPropertyDescriptor(globalThis, 'localStorage')
+  Object.defineProperty(globalThis, 'localStorage', {
+    configurable: true,
+    value: {
+      getItem: () => JSON.stringify([
+        task({ id: 'sample-2026-10-07-1', title: '旧预设计划' }),
+        task({ id: 'user-plan', title: '用户计划' }),
+      ]),
+    },
+  })
+
+  try {
+    const loaded = readTasks()
+    assert.deepEqual(loaded.map((item) => item.id), ['user-plan'])
+  } finally {
+    if (originalDescriptor) Object.defineProperty(globalThis, 'localStorage', originalDescriptor)
+    else Reflect.deleteProperty(globalThis, 'localStorage')
+  }
+})
+
 test('daily summary stays consistent after a task is permanently deleted', () => {
   const tasks = [
     task({ id: 'late', startTime: '11:00' }),

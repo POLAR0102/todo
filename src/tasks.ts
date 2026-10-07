@@ -32,18 +32,6 @@ export type TaskStatus = 'completed' | 'active' | 'pending' | 'deleted'
 
 const STORAGE_KEY = 'daily-plan.tasks.v1'
 
-const sampleSchedule: Array<[string, string, string]> = [
-  ['08:00', '08:30', '整理今天的计划'],
-  ['08:30', '10:00', '处理最重要的任务'],
-  ['10:00', '10:20', '休息与活动'],
-  ['10:20', '11:30', '推进项目进度'],
-  ['11:30', '12:00', '整理上午成果'],
-  ['14:00', '15:30', '专注工作'],
-  ['15:30', '16:00', '回复消息与邮件'],
-  ['16:00', '17:00', '学习与阅读'],
-  ['17:00', '17:30', '复盘并安排明天'],
-]
-
 export function formatDateKey(date: Date = new Date()): string {
   const year = date.getFullYear()
   const month = String(date.getMonth() + 1).padStart(2, '0')
@@ -178,21 +166,6 @@ export function toggleSubtaskCompletion(tasks: Task[], taskId: string, subtaskId
   })
 }
 
-function createSampleTasks(): Task[] {
-  const date = formatDateKey()
-  const createdAt = new Date().toISOString()
-  return sampleSchedule.map(([startTime, endTime, title], index) => ({
-    id: `sample-${date}-${index + 1}`,
-    title,
-    startTime,
-    endTime,
-    completed: false,
-    date,
-    createdAt,
-    subtasks: [],
-  }))
-}
-
 function normalizeStoredSubtasks(value: unknown): Subtask[] {
   if (!Array.isArray(value)) return []
   return value.flatMap((entry) => {
@@ -211,17 +184,17 @@ function normalizeStoredSubtasks(value: unknown): Subtask[] {
 export function readTasks(): Task[] {
   try {
     const saved = localStorage.getItem(STORAGE_KEY)
-    if (saved === null) return createSampleTasks()
+    if (saved === null) return []
     const parsed: unknown = JSON.parse(saved)
     if (Array.isArray(parsed)) {
       return (parsed as Task[])
-        .filter((task) => !task.deletedAt)
+        .filter((task) => !task.deletedAt && !task.id.startsWith('sample-'))
         .map((task) => ({ ...task, subtasks: normalizeStoredSubtasks(task.subtasks) }))
     }
   } catch {
-    // Keep the first-run schedule usable if local storage is unavailable.
+    // Keep the app usable with an empty schedule if local storage is unavailable.
   }
-  return createSampleTasks()
+  return []
 }
 
 function createId(): string {
