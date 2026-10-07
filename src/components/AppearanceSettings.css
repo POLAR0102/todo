@@ -1,0 +1,29 @@
+.appearance-opacity-settings {
+  display: grid;
+  gap: 12px;
+  margin-top: 18px;
+  padding-top: 16px;
+  border-top: 1px solid rgba(150, 175, 220, .16);
+}
+
+.appearance-opacity-row {
+  display: grid;
+  grid-template-columns: 120px minmax(0, 1fr) 38px;
+  align-items: center;
+  gap: 12px;
+  color: #b7c8e1;
+  font-size: 11px;
+}
+
+.appearance-opacity-row input { width: 100%; min-width: 0; accent-color: #6399f2; }
+.appearance-opacity-row output { color: #a8cbff; text-align: right; font-variant-numeric: tabular-nums; }
+.display-settings .appearance-opacity-note { margin: 0; }
+
+.app-shell[data-theme='light'] .appearance-opacity-settings { border-top-color: rgba(82, 113, 162, .18); }
+.app-shell[data-theme='light'] .appearance-opacity-row { color: #4d6484; }
+.app-shell[data-theme='light'] .appearance-opacity-row output { color: #3263ad; }
+
+@media (max-width: 690px) {
+  .appearance-opacity-row { grid-template-columns: 1fr 36px; gap: 7px 10px; }
+  .appearance-opacity-row label { grid-column: 1 / -1; }
+}

@@ -1,0 +1,33 @@
+.choice-backdrop { z-index: 7; }
+.choice-dialog { width: min(410px, 100%); padding: 21px; }
+.choice-dialog .dialog-head { margin-bottom: 16px; }
+.choice-dialog-message {
+  margin: 0;
+  color: #b7c6dc;
+  font-size: 12px;
+  line-height: 1.7;
+  overflow-wrap: anywhere;
+  white-space: pre-line;
+}
+.choice-dialog-actions { margin-top: 20px; }
+.choice-secondary-button { color: #c5d5ec; border-color: rgba(151, 184, 235, .25); }
+.choice-danger-button {
+  color: #fff;
+  background: linear-gradient(135deg, #df6570, #bc3f50);
+  box-shadow: 0 8px 19px rgba(151, 43, 58, .22);
+}
+.choice-danger-button:hover { background: linear-gradient(135deg, #eb7680, #ca4c5d); }
+
+.app-shell[data-theme='light'] .choice-dialog-message { color: #425c7e; }
+.app-shell[data-theme='light'] .choice-secondary-button {
+  color: #315e9e;
+  border-color: rgba(71, 116, 181, .35);
+  background: rgb(226 237 252 / var(--glass-dialog-control-layer-opacity, 0));
+}
+.app-shell[data-theme='light'] .choice-secondary-button:hover {
+  background: rgb(214 229 249 / var(--glass-dialog-control-layer-opacity, 0));
+}
+
+@media (max-width: 440px) {
+  .choice-dialog-actions { flex-wrap: wrap; }
+}

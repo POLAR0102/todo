@@ -1,0 +1,95 @@
+{
+  "name": "todo",
+  "version": "0.1.0",
+  "description": "一款直观的 Windows 每日计划桌面应用",
+  "author": "todo contributors",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/POLAR0102/todo.git"
+  },
+  "homepage": "https://github.com/POLAR0102/todo#readme",
+  "bugs": {
+    "url": "https://github.com/POLAR0102/todo/issues"
+  },
+  "private": true,
+  "type": "module",
+  "main": "dist-electron/main.js",
+  "scripts": {
+    "dev": "npm run build:electron && concurrently -k \"vite --host 127.0.0.1\" \"wait-on http://127.0.0.1:5173 && cross-env VITE_DEV_SERVER_URL=http://127.0.0.1:5173 electron .\"",
+    "build": "npm run typecheck && vite build && npm run build:electron",
+    "build:electron": "tsc -p electron/tsconfig.json",
+    "typecheck": "tsc --noEmit -p tsconfig.json && tsc --noEmit -p electron/tsconfig.json",
+    "start": "electron .",
+    "test": "node --test tests/*.test.ts",
+    "dist:win": "npm run build && electron-builder --win nsis portable --x64",
+    "pack:win": "npm run build && electron-builder --win dir --x64"
+  },
+  "dependencies": {
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0"
+  },
+  "devDependencies": {
+    "@tailwindcss/vite": "^4.3.3",
+    "@types/node": "^24.0.0",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "@vitejs/plugin-react": "^5.0.0",
+    "concurrently": "9.2.4",
+    "cross-env": "^10.1.0",
+    "electron": "^44.5.1",
+    "electron-builder": "26.15.3",
+    "tailwindcss": "^4.3.3",
+    "typescript": "^5.9.3",
+    "vite": "^8.3.2",
+    "wait-on": "^9.0.0"
+  },
+  "overrides": {
+    "shell-quote": "1.12.0"
+  },
+  "build": {
+    "appId": "io.github.polar0102.todo",
+    "productName": "todo",
+    "asar": true,
+    "directories": {
+      "output": "release",
+      "buildResources": "build"
+    },
+    "files": [
+      "dist/**/*",
+      "dist-electron/**/*",
+      "package.json"
+    ],
+    "win": {
+      "icon": "build/icon.ico",
+      "executableName": "todo",
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "portable",
+          "arch": [
+            "x64"
+          ]
+        }
+      ]
+    },
+    "nsis": {
+      "artifactName": "todo-Setup-${version}-${arch}.${ext}",
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "todo",
+      "uninstallDisplayName": "todo",
+      "deleteAppDataOnUninstall": false
+    },
+    "portable": {
+      "artifactName": "todo-Portable-${version}-${arch}.${ext}"
+    }
+  }
+}
