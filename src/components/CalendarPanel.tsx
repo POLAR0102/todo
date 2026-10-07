@@ -10,18 +10,20 @@ import {
   moveCalendarMonth,
 } from '../calendar'
 import { formatDateKey, type Task } from '../tasks'
+import { TrashIcon } from './Icons'
 import './CalendarPanel.css'
 
 type CalendarPanelProps = {
   tasks: Task[]
   now: Date
+  onDeleteTask: (task: Task) => void
 }
 
 function ChevronIcon({ direction }: { direction: 'left' | 'right' }) {
   return <svg aria-hidden="true" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d={direction === 'left' ? 'm15 18-6-6 6-6' : 'm9 18 6-6-6-6'} /></svg>
 }
 
-export function CalendarPanel({ tasks, now }: CalendarPanelProps) {
+export function CalendarPanel({ tasks, now, onDeleteTask }: CalendarPanelProps) {
   const todayKey = formatDateKey(now)
   const [month, setMonth] = useState(() => monthFromDate(now))
   const [selectedDate, setSelectedDate] = useState(todayKey)
@@ -96,6 +98,15 @@ export function CalendarPanel({ tasks, now }: CalendarPanelProps) {
               <time>{calendarTaskTime(task)}</time>
               <div className="calendar-detail-main"><strong title={task.title}>{task.title}</strong>{subtasks.length > 0 && <span>子任务 {completedSubtasks}/{subtasks.length}</span>}</div>
               <span className={`calendar-detail-state state-${state}`}>{state}</span>
+              <button
+                className="calendar-delete-button"
+                type="button"
+                aria-label={`删除 ${task.title}`}
+                title="删除计划"
+                onClick={() => onDeleteTask(task)}
+              >
+                <TrashIcon size={14} />
+              </button>
             </li>
           })}
         </ul>}

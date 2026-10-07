@@ -295,7 +295,7 @@ export default function App() {
           </>}
 
           {page === 'statistics' && <StatisticsPanel tasks={todayTasks} now={now} />}
-          {page === 'calendar' && <CalendarPanel tasks={tasks} now={now} />}
+          {page === 'calendar' && <CalendarPanel tasks={tasks} now={now} onDeleteTask={removeTask} />}
           {page === 'settings' && <div className="simple-page"><h1>设置</h1><p>你的计划数据保存在这台设备中。</p><AppearanceSettings themePreference={themePreference} onThemeChange={setThemePreference} opacitySettings={opacitySettings} onOpacityChange={(mode, value) => setOpacitySettings((current) => ({ ...current, [mode]: value }))} /><div className="settings-note"><div className="settings-note-icon"><SettingsIcon size={21} /></div><div><strong>更多设置即将开放</strong><span>任务结束提醒已开启，休息提醒会在后续版本加入。</span></div></div></div>}
         </main>
       </div>
