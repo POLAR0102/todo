@@ -8,8 +8,13 @@ import { ChoiceDialog } from './components/ChoiceDialog'
 import { StatisticsPanel } from './components/StatisticsPanel'
 import { CalendarPanel } from './components/CalendarPanel'
 import { AppearanceSettings } from './components/AppearanceSettings'
+import { NotificationSettings } from './components/NotificationSettings'
+import { BulkImportModal, type BulkImportStats } from './components/BulkImportModal'
 import { appearanceStyle, loadAppearanceOpacity, type ColorTheme, type ThemePreference } from './appearance'
 import { analyzeCopyConflicts, findFirstTimeConflict, generateDayCopyInputs, generateTaskInputs, type CopyDayInput, type PlanInput, type TimeConflict } from './schedule'
+import { focusRemindersBetween, taskStartNotificationKey, tasksStartingBetween } from './notificationEvents'
+import { loadNotificationSettings, saveNotificationSettings, type NotificationSettings as NotificationSettingsValue } from './notificationSettings'
+import { playNotificationSound, previewNotificationSound } from './services/soundService'
 import { taskEndNotificationKey, tasksEndingBetween } from './taskEndNotifications'
 
 type Page = 'today' | 'statistics' | 'calendar' | 'settings'
@@ -34,6 +39,7 @@ type WindowBridge = {
   cancelCollapse: () => void
   scheduleCollapse: () => void
   showTaskEnd?: (notification: { title: string; endTime: string; theme: ColorTheme; opacity: number }) => void
+  showSystemNotification?: (notification: { title: string; body: string }) => void
   updateNotificationAppearance?: (appearance: { theme: ColorTheme; opacity: number }) => void
 }
 
@@ -61,13 +67,17 @@ export default function App() {
   const [page, setPage] = useState<Page>('today')
   const [dialogOpen, setDialogOpen] = useState(false)
   const [copyDialogOpen, setCopyDialogOpen] = useState(false)
+  const [bulkImportOpen, setBulkImportOpen] = useState(false)
   const [editingTask, setEditingTask] = useState<Task | undefined>()
   const [popup, setPopup] = useState<Popup | null>(null)
   const [themePreference, setThemePreference] = useState<ThemePreference>(savedThemePreference)
   const [opacitySettings, setOpacitySettings] = useState(loadAppearanceOpacity)
+  const [notificationSettings, setNotificationSettings] = useState(loadNotificationSettings)
   const [systemDark, setSystemDark] = useState(() => window.matchMedia('(prefers-color-scheme: dark)').matches)
   const lastNotificationCheck = useRef(Date.now())
+  const notifiedTaskStarts = useRef(new Set<string>())
   const notifiedTaskEnds = useRef(new Set<string>())
+  const notifiedFocusReminders = useRef(new Set<string>())
 
   useEffect(() => {
     const timer = window.setInterval(() => setNow(new Date()), 1000)
@@ -102,14 +112,27 @@ export default function App() {
     const current = now.getTime()
     const previous = lastNotificationCheck.current
     lastNotificationCheck.current = current
-    const showTaskEnd = windowBridge()?.showTaskEnd
-    if (!showTaskEnd) return
+    const bridge = windowBridge()
+
+    for (const task of tasksStartingBetween(tasks, previous, current, notifiedTaskStarts.current)) {
+      notifiedTaskStarts.current.add(taskStartNotificationKey(task))
+      bridge?.showSystemNotification?.({ title: '计划开始', body: task.title })
+      void playNotificationSound(notificationSettings)
+    }
 
     for (const task of tasksEndingBetween(tasks, previous, current, notifiedTaskEnds.current)) {
       notifiedTaskEnds.current.add(taskEndNotificationKey(task))
-      showTaskEnd({ title: task.title, endTime: task.endTime, theme, opacity: opacitySettings[theme] })
+      bridge?.showTaskEnd?.({ title: task.title, endTime: task.endTime, theme, opacity: opacitySettings[theme] })
+      bridge?.showSystemNotification?.({ title: '计划结束', body: `${task.title} 已结束` })
+      void playNotificationSound(notificationSettings)
     }
-  }, [now, tasks, theme, opacitySettings])
+
+    for (const reminder of focusRemindersBetween(tasks, previous, current, notifiedFocusReminders.current)) {
+      notifiedFocusReminders.current.add(reminder.key)
+      bridge?.showSystemNotification?.({ title: '专注提醒', body: '已经专注 40 分钟，休息 5 分钟吧' })
+      void playNotificationSound(notificationSettings)
+    }
+  }, [now, tasks, theme, opacitySettings, notificationSettings])
 
   const dateLabel = new Intl.DateTimeFormat('zh-CN', { month: 'long', day: 'numeric', weekday: 'long' }).format(now)
   const clockLabel = new Intl.DateTimeFormat('zh-CN', { hour: '2-digit', minute: '2-digit', hour12: false }).format(now)
@@ -199,6 +222,28 @@ export default function App() {
     setPopup({ kind: 'notice', title: '计划已复制', message: `已将 ${sourceDate} 的计划复制到 ${days} 天，共 ${candidates.length} 项计划。新计划均为待完成。${skipped}` })
   }
 
+  function importTasks(inputs: TaskInput[], stats: BulkImportStats) {
+    addTasks(inputs)
+    setBulkImportOpen(false)
+    const skipped = [
+      stats.duplicate > 0 ? `跳过 ${stats.duplicate} 条重复任务` : '',
+      stats.invalid > 0 ? `${stats.invalid} 条格式错误` : '',
+    ].filter(Boolean)
+    setPopup({
+      kind: 'notice',
+      title: '批量导入完成',
+      message: `成功导入 ${stats.imported} 条计划${skipped.length > 0 ? `，${skipped.join('，')}` : ''}。`,
+    })
+  }
+
+  function changeNotificationSettings(patch: Partial<NotificationSettingsValue>) {
+    setNotificationSettings((current) => {
+      const next = { ...current, ...patch }
+      saveNotificationSettings(next)
+      return next
+    })
+  }
+
   function confirmPopup() {
     setPopup(null)
   }
@@ -209,7 +254,7 @@ export default function App() {
       data-theme={theme}
       style={appearanceStyle(theme, opacitySettings)}
       onPointerEnter={() => { windowBridge()?.cancelCollapse(); windowBridge()?.expand() }}
-      onPointerLeave={() => { if (!dialogOpen && !copyDialogOpen && !popup) windowBridge()?.scheduleCollapse() }}
+      onPointerLeave={() => { if (!dialogOpen && !copyDialogOpen && !bulkImportOpen && !popup) windowBridge()?.scheduleCollapse() }}
     >
       <button className="edge-handle" type="button" aria-label="展开计划面板" onClick={() => windowBridge()?.expand()}>
         <span className="handle-line" />
@@ -241,7 +286,10 @@ export default function App() {
               <div>
                 <p className="header-date">{dateLabel}<span className="date-separator">·</span>现在 {clockLabel}</p>
               </div>
-              <button className="button button-primary add-top" type="button" onClick={openNewTask}><PlusIcon size={17} />添加计划</button>
+              <div className="page-header-actions">
+                <button className="button button-secondary add-top" type="button" onClick={() => setBulkImportOpen(true)}><CopyIcon size={16} />批量导入</button>
+                <button className="button button-primary add-top" type="button" onClick={openNewTask}><PlusIcon size={17} />添加计划</button>
+              </div>
             </header>
 
             <section className={`current-card ${active ? 'has-current' : ''}`} aria-label="当前任务">
@@ -296,12 +344,23 @@ export default function App() {
 
           {page === 'statistics' && <StatisticsPanel tasks={todayTasks} now={now} />}
           {page === 'calendar' && <CalendarPanel tasks={tasks} now={now} onDeleteTask={removeTask} />}
-          {page === 'settings' && <div className="simple-page"><h1>设置</h1><p>你的计划数据保存在这台设备中。</p><AppearanceSettings themePreference={themePreference} onThemeChange={setThemePreference} opacitySettings={opacitySettings} onOpacityChange={(mode, value) => setOpacitySettings((current) => ({ ...current, [mode]: value }))} /><div className="settings-note"><div className="settings-note-icon"><SettingsIcon size={21} /></div><div><strong>更多设置即将开放</strong><span>任务结束提醒已开启，休息提醒会在后续版本加入。</span></div></div></div>}
+          {page === 'settings' && <div className="simple-page settings-page">
+            <h1>设置</h1>
+            <p>你的计划数据保存在这台设备中。</p>
+            <AppearanceSettings themePreference={themePreference} onThemeChange={setThemePreference} opacitySettings={opacitySettings} onOpacityChange={(mode, value) => setOpacitySettings((current) => ({ ...current, [mode]: value }))} />
+            <NotificationSettings
+              settings={notificationSettings}
+              onChange={changeNotificationSettings}
+              onPreview={() => { void previewNotificationSound(notificationSettings.notificationVolume) }}
+            />
+            <div className="settings-note"><div className="settings-note-icon"><SettingsIcon size={21} /></div><div><strong>更多设置即将开放</strong><span>提醒与提示音设置会立即保存在这台设备中。</span></div></div>
+          </div>}
         </main>
       </div>
 
       {dialogOpen && <TaskDialog key={editingTask?.id ?? 'new'} date={date} task={editingTask} tasks={tasks} noticeOpen={Boolean(popup)} onClose={() => { setDialogOpen(false); setEditingTask(undefined) }} onSave={saveTask} onConflict={showConflict} />}
       {copyDialogOpen && <CopyDayDialog date={date} tasks={tasks} noticeOpen={Boolean(popup)} onClose={() => setCopyDialogOpen(false)} onSave={copyDay} />}
+      {bulkImportOpen && <BulkImportModal date={date} tasks={tasks} noticeOpen={Boolean(popup)} onClose={() => setBulkImportOpen(false)} onImport={importTasks} />}
       {popup?.kind === 'notice' && <MessageDialog title={popup.title} message={popup.message} onClose={() => setPopup(null)} onConfirm={confirmPopup} />}
       {popup?.kind === 'remove' && <ChoiceDialog
         title="永久删除计划"

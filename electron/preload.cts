@@ -7,5 +7,6 @@ contextBridge.exposeInMainWorld("dailyPlanWindow", {
   scheduleCollapse: () => ipcRenderer.send("daily-plan-window:schedule-collapse"),
   toggle: () => ipcRenderer.send("daily-plan-window:toggle"),
   showTaskEnd: (notification: { title: string; endTime: string; theme: 'light' | 'dark'; opacity: number }) => ipcRenderer.send('daily-plan-notification:task-end', notification),
+  showSystemNotification: (notification: { title: string; body: string }) => ipcRenderer.send('daily-plan-notification:system', notification),
   updateNotificationAppearance: (appearance: { theme: 'light' | 'dark'; opacity: number }) => ipcRenderer.send('daily-plan-notification:appearance', appearance),
 });

@@ -106,6 +106,7 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px s
 .button-secondary { color: #aebcd2; background: rgb(45 61 89 / var(--glass-dialog-control-layer-opacity, .75)); border: 1px solid rgba(150, 175, 220, .12); }
 .button-secondary:hover { background: rgb(60 80 116 / var(--glass-dialog-control-layer-opacity, .75)); }
 .add-top { margin-top: 11px; }
+.page-header-actions { display: flex; align-items: center; justify-content: flex-end; gap: 8px; }
 
 .section-kicker { color: #8fa6c7; font-size: 11px; font-weight: 700; letter-spacing: .05em; }
 .progress-track { height: 6px; flex: 1; border-radius: 10px; overflow: hidden; background: rgba(119, 156, 213, .18); }
@@ -190,6 +191,7 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px s
 .timeline-empty p { font-size: 11px; margin: 6px 0 16px; }
 
 .simple-page { padding-top: 8px; }
+.settings-page { flex: 1; min-height: 0; overflow-y: auto; padding-right: 4px; scrollbar-color: rgba(111, 143, 193, .4) transparent; scrollbar-width: thin; }
 .simple-page > p { margin: 0 0 30px; color: #90a2bd; font-size: 12px; }
 .stat-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 11px; }
 .stat-tile { display: flex; flex-direction: column; gap: 14px; padding: 17px; border: 1px solid rgba(149, 184, 237, .14); border-radius: 12px; background: rgb(65 103 157 / var(--glass-card-layer-opacity, .1667)); }

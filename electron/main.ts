@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain, screen } from "electron";
+import { app, BrowserWindow, ipcMain, Notification, screen } from "electron";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import {
@@ -19,6 +19,22 @@ let mainWindow: BrowserWindow | null = null;
 app.setName("todo");
 app.setAppUserModelId("io.github.polar0102.todo");
 app.setPath("userData", path.join(app.getPath("appData"), "daily-plan"));
+app.commandLine.appendSwitch("autoplay-policy", "no-user-gesture-required");
+
+function showSystemNotification(value: unknown) {
+  if (!value || typeof value !== 'object' || !Notification.isSupported()) return
+  const input = value as Record<string, unknown>
+  if (typeof input.title !== 'string' || typeof input.body !== 'string') return
+  const title = input.title.replace(/[\u0000-\u001f\u007f-\u009f]/g, ' ').trim().slice(0, 80)
+  const body = input.body.replace(/[\u0000-\u001f\u007f-\u009f]/g, ' ').trim().slice(0, 160)
+  if (!title || !body) return
+
+  try {
+    new Notification({ title, body, silent: true }).show()
+  } catch (reason) {
+    console.warn('System notification failed', reason)
+  }
+}
 
 function createWindow() {
   const browserWindow = new BrowserWindow({
@@ -83,6 +99,9 @@ function registerWindowCommands() {
   })
   ipcMain.on('daily-plan-notification:appearance', (event, appearance: unknown) => {
     if (event.sender === mainWindow?.webContents) updateNotificationAppearance(appearance)
+  })
+  ipcMain.on('daily-plan-notification:system', (event, notification: unknown) => {
+    if (event.sender === mainWindow?.webContents) showSystemNotification(notification)
   })
 }
 
